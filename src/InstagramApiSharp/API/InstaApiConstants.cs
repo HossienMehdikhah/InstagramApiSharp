@@ -175,7 +175,7 @@ namespace InstagramApiSharp.API
         public const string ACCOUNTS_VALIDATE_SIGNUP_SMS_CODE = API_SUFFIX + "/accounts/validate_signup_sms_code/";
         public const string ACCOUNTS_VERIFY_SMS_CODE = API_SUFFIX + "/accounts/verify_sms_code/";
         public const string CHANGE_PASSWORD = API_SUFFIX + "/accounts/change_password/";
-        public const string CURRENTUSER = API_SUFFIX + "/accounts/current_user/?edit=true";
+        public const string CURRENTUSER = API_SUFFIX + "/accounts/current_user?edit=true";
         public const string SET_ACCOUNT_PRIVATE = API_SUFFIX + "/accounts/set_private/";
         public const string SET_ACCOUNT_PUBLIC = API_SUFFIX + "/accounts/set_public/";
         public const string ACCOUNTS_CONVERT_TO_PERSONAL = API_SUFFIX + "/accounts/convert_to_personal/";

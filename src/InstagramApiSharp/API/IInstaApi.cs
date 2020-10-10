@@ -1,25 +1,10 @@
-﻿/*  
- *  
- *  
- *  Base of everything! Access to any other classes via IInstaApi
- *  
- *  
- *                      IRANIAN DEVELOPERS
- *        
- *        
- *                            2019
- *  
- *  
- */
-
-using System.IO;
+﻿using System.IO;
 using System.Threading.Tasks;
 using InstagramApiSharp.API.Processors;
 using InstagramApiSharp.Classes;
 using InstagramApiSharp.Classes.Models;
 using InstagramApiSharp.Classes.Android.DeviceInfo;
 using InstagramApiSharp.Enums;
-using InstagramApiSharp.Classes.SessionHandlers;
 using System.Net.Http;
 using System.Collections.Generic;
 using System;
@@ -114,72 +99,10 @@ namespace InstagramApiSharp.API
         /// </summary>
         IWebProcessor WebProcessor { get; }
 
-        /// <summary>
-        ///     Session handler
-        /// </summary>
-        ISessionHandler SessionHandler { get; set; }
+        StateData StateData{ get; set; }
+        InstaTwoFactorLoginInfo TwoFactorInfo { get; set; }
 
         #endregion
-
-        #region State data
-
-        /// <summary>
-        ///     Get current state info as Memory stream
-        /// </summary>
-        /// <returns>State data</returns>
-        Stream GetStateDataAsStream();
-        /// <summary>
-        ///     Get current state info as Json string
-        /// </summary>
-        /// <returns>State data</returns>
-        string GetStateDataAsString();
-        /// <summary>
-        ///     Get current state info as Json string asynchronously
-        /// </summary>
-        /// <returns>
-        ///     State data
-        /// </returns>
-        /// 
-
-        ///<summary>
-        ///     Get current state as StateData object
-        /// </summary>
-        /// <returns>
-        ///     State data object
-        /// </returns>
-        StateData GetStateDataAsObject();
-            
-        Task<string> GetStateDataAsStringAsync();
-        /// <summary>
-        ///     Get current state info as Memory stream asynchronously
-        /// </summary>
-        /// <returns>State data</returns>
-        Task<Stream> GetStateDataAsStreamAsync();
-        /// <summary>
-        ///     Set state data from provided stream
-        /// </summary>
-        void LoadStateDataFromStream(Stream data);
-        /// <summary>
-        ///     Set state data from provided json string
-        /// </summary>
-        void LoadStateDataFromString(string data);
-        /// <summary>
-        ///     Set state data from provided stream asynchronously
-        /// </summary>
-
-        /// <summary>
-        ///     Set state data from object
-        /// </summary>
-        void LoadStateDataFromObject(StateData stateData);
-
-        Task LoadStateDataFromStreamAsync(Stream stream);
-        /// <summary>
-        ///     Set state data from provided json string asynchronously
-        /// </summary>
-        Task LoadStateDataFromStringAsync(string json);
-
-
-        #endregion State data
 
         #region Other public functions
 

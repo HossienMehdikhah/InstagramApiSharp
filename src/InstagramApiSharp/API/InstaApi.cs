@@ -12,7 +12,6 @@ using InstagramApiSharp.Classes.Android.DeviceInfo;
 using InstagramApiSharp.Classes.Models;
 using InstagramApiSharp.Classes.ResponseWrappers;
 using InstagramApiSharp.Classes.ResponseWrappers.BaseResponse;
-using InstagramApiSharp.Classes.SessionHandlers;
 using InstagramApiSharp.Converters;
 using InstagramApiSharp.Enums;
 using InstagramApiSharp.Helpers;
@@ -27,6 +26,19 @@ namespace InstagramApiSharp.API
     /// </summary>
     internal class InstaApi : IInstaApi
     {
+        public InstaApi(UserSessionData user, IInstaLogger logger, AndroidDevice deviceInfo,
+            IHttpRequestProcessor httpRequestProcessor, InstaApiVersionType apiVersionType)
+        {
+            _userAuthValidate = new UserAuthValidate();
+            _user = user;
+            _logger = logger;
+            _deviceInfo = deviceInfo;
+            _httpRequestProcessor = httpRequestProcessor;
+            _apiVersionType = apiVersionType;
+            _apiVersion = InstaApiVersionList.GetApiVersionList().GetApiVersion(apiVersionType);
+            _httpHelper = new HttpHelper(_apiVersion, httpRequestProcessor, this);
+        }
+        
         #region Variables and properties
 
         private IRequestDelay _delay = RequestDelay.Empty();
@@ -36,7 +48,6 @@ namespace InstagramApiSharp.API
         private InstaApiVersion _apiVersion;
         private HttpHelper _httpHelper { get; set; }
         private AndroidDevice _deviceInfo;
-        private InstaTwoFactorLoginInfo _twoFactorInfo;
         private InstaChallengeLoginInfo _challengeinfo;
         private UserSessionData _userSession;
         private UserSessionData _user
@@ -68,12 +79,61 @@ namespace InstagramApiSharp.API
         /// </summary>
         public IHttpRequestProcessor HttpRequestProcessor => _httpRequestProcessor;
 
-        #endregion Variables and properties
+        public StateData StateData
+        {
+            get
+            {
+                var Cookies = _httpRequestProcessor.HttpHandler.CookieContainer.GetCookies(new Uri(InstaApiConstants.INSTAGRAM_URL));
+                var RawCookiesList = new List<Cookie>();
+                foreach (Cookie cookie in Cookies)
+                {
+                    RawCookiesList.Add(cookie);
+                }
 
-        #region SessionHandler
-        private ISessionHandler _sessionHandler;
-        public ISessionHandler SessionHandler { get => _sessionHandler; set => _sessionHandler = value; }
-        #endregion
+                var state = new StateData
+                {
+                    DeviceInfo = _deviceInfo,
+                    IsAuthenticated = IsUserAuthenticated,
+                    UserSession = _user,
+                    Cookies = _httpRequestProcessor.HttpHandler.CookieContainer,
+                    RawCookies = RawCookiesList,
+                    InstaApiVersion = _apiVersionType
+                };
+                return state;
+            }
+
+            set
+            {
+                if (!IsCustomDeviceSet)
+                    _deviceInfo = value.DeviceInfo;
+                _user = value.UserSession;
+
+                _httpRequestProcessor.RequestMessage.Username = value.UserSession.UserName;
+                _httpRequestProcessor.RequestMessage.Password = value.UserSession.Password;
+
+                _httpRequestProcessor.RequestMessage.DeviceId = value.DeviceInfo.DeviceId;
+                _httpRequestProcessor.RequestMessage.PhoneId = value.DeviceInfo.PhoneGuid.ToString();
+                _httpRequestProcessor.RequestMessage.Guid = value.DeviceInfo.DeviceGuid;
+                _httpRequestProcessor.RequestMessage.AdId = value.DeviceInfo.AdId.ToString();
+
+                foreach (var cookie in value.RawCookies)
+                {
+                    _httpRequestProcessor.HttpHandler.CookieContainer.Add(new Uri(InstaApiConstants.INSTAGRAM_URL), cookie);
+                }
+
+                if (value.InstaApiVersion == null)
+                    value.InstaApiVersion = InstaApiVersionType.Version126;
+                _apiVersionType = value.InstaApiVersion.Value;
+                _apiVersion = InstaApiVersionList.GetApiVersionList().GetApiVersion(_apiVersionType);
+                _httpHelper = new HttpHelper(_apiVersion, HttpRequestProcessor, this);
+
+                IsUserAuthenticated = value.IsAuthenticated;
+                InvalidateProcessors();
+            }
+        }
+        public InstaTwoFactorLoginInfo TwoFactorInfo { get; set; }
+
+        #endregion Variables and properties
 
         #region Processors
 
@@ -166,26 +226,9 @@ namespace InstagramApiSharp.API
         ///     Instagram Web api functions.
         ///     <para>It's related to https://instagram.com/accounts/ </para>
         /// </summary>
-        public IWebProcessor WebProcessor => _webProcessor;
+        public IWebProcessor WebProcessor => _webProcessor;        
 
-        #endregion Processors
-
-        #region Constructor
-
-        public InstaApi(UserSessionData user, IInstaLogger logger, AndroidDevice deviceInfo,
-            IHttpRequestProcessor httpRequestProcessor, InstaApiVersionType apiVersionType)
-        {
-            _userAuthValidate = new UserAuthValidate();
-            _user = user;
-            _logger = logger;
-            _deviceInfo = deviceInfo;
-            _httpRequestProcessor = httpRequestProcessor;
-            _apiVersionType = apiVersionType;
-            _apiVersion = InstaApiVersionList.GetApiVersionList().GetApiVersion(apiVersionType);
-            _httpHelper = new HttpHelper(_apiVersion, httpRequestProcessor, this);
-        }
-
-        #endregion Constructor
+        #endregion Processors       
 
         #region Register new account with Phone number and email
 
@@ -963,7 +1006,7 @@ namespace InstagramApiSharp.API
                     {
                         if (loginFailReason.TwoFactorLoginInfo != null)
                             _httpRequestProcessor.RequestMessage.Username = loginFailReason.TwoFactorLoginInfo.Username;
-                        _twoFactorInfo = loginFailReason.TwoFactorLoginInfo;
+                        TwoFactorInfo = loginFailReason.TwoFactorLoginInfo;
                         //2FA is required!
                         return Result.Fail("Two Factor Authentication is required", InstaLoginResult.TwoFactorRequired);
                     }
@@ -1113,7 +1156,7 @@ namespace InstagramApiSharp.API
         /// </returns>
         public async Task<IResult<InstaLoginTwoFactorResult>> TwoFactorLoginAsync(string verificationCode)
         {
-            if (_twoFactorInfo == null)
+            if (TwoFactorInfo == null)
                 return Result.Fail<InstaLoginTwoFactorResult>("Run LoginAsync first");
 
             try
@@ -1121,7 +1164,7 @@ namespace InstagramApiSharp.API
                 var twoFactorRequestMessage = new ApiTwoFactorRequestMessage(verificationCode,
                     _httpRequestProcessor.RequestMessage.Username,
                     _httpRequestProcessor.RequestMessage.DeviceId,
-                    _twoFactorInfo.TwoFactorIdentifier);
+                    TwoFactorInfo.TwoFactorIdentifier);
 
                 var instaUri = UriCreator.GetTwoFactorLoginUri();
                 var signature =
@@ -1193,8 +1236,8 @@ namespace InstagramApiSharp.API
         public async Task<IResult<InstaTwoFactorLoginInfo>> GetTwoFactorInfoAsync()
         {
             return await Task.Run(() =>
-                _twoFactorInfo != null
-                    ? Result.Success(_twoFactorInfo)
+                TwoFactorInfo != null
+                    ? Result.Success(TwoFactorInfo)
                     : Result.Fail<InstaTwoFactorLoginInfo>("No Two Factor info available."));
         }
         /// <summary>
@@ -1687,12 +1730,12 @@ namespace InstagramApiSharp.API
         {
             try
             {
-                if (_twoFactorInfo == null)
+                if (TwoFactorInfo == null)
                     return Result.Fail<TwoFactorLoginSMS>("Run LoginAsync first");
 
                 var postData = new Dictionary<string, string>
                 {
-                    { "two_factor_identifier",  _twoFactorInfo.TwoFactorIdentifier },
+                    { "two_factor_identifier",  TwoFactorInfo.TwoFactorIdentifier },
                     { "username",    _httpRequestProcessor.RequestMessage.Username},
                     { "device_id",   _httpRequestProcessor.RequestMessage.DeviceId},
                     { "guid",        _deviceInfo.DeviceGuid.ToString()},
@@ -1706,7 +1749,7 @@ namespace InstagramApiSharp.API
 
                 var T = JsonConvert.DeserializeObject<TwoFactorLoginSMS>(result);
                 if (!string.IsNullOrEmpty(T.TwoFactorInfo.TwoFactorIdentifier))
-                    _twoFactorInfo.TwoFactorIdentifier = T.TwoFactorInfo.TwoFactorIdentifier;
+                    TwoFactorInfo.TwoFactorIdentifier = T.TwoFactorInfo.TwoFactorIdentifier;
                 return Result.Success(T);
             }
             catch (HttpRequestException httpException)
@@ -2167,8 +2210,8 @@ namespace InstagramApiSharp.API
                                 : InstaLoginResult.InvalidUser);
                     if (loginFailReason.TwoFactorRequired)
                     {
-                        _twoFactorInfo = loginFailReason.TwoFactorLoginInfo;
-                        _httpRequestProcessor.RequestMessage.Username = _twoFactorInfo.Username;
+                        TwoFactorInfo = loginFailReason.TwoFactorLoginInfo;
+                        _httpRequestProcessor.RequestMessage.Username = TwoFactorInfo.Username;
                         _httpRequestProcessor.RequestMessage.DeviceId = _deviceInfo.DeviceId;
                         return Result.Fail("Two Factor Authentication is required", InstaLoginResult.TwoFactorRequired);
                     }

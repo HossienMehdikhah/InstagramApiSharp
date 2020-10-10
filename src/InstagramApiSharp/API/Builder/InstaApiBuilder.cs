@@ -4,7 +4,6 @@ using InstagramApiSharp.Classes;
 using InstagramApiSharp.Classes.Android.DeviceInfo;
 using InstagramApiSharp.Logger;
 using InstagramApiSharp.Enums;
-using InstagramApiSharp.Classes.SessionHandlers;
 
 namespace InstagramApiSharp.API.Builder
 {
@@ -19,7 +18,6 @@ namespace InstagramApiSharp.API.Builder
         private ApiRequestMessage _requestMessage;
         private UserSessionData _user;
         private InstaApiVersionType? _apiVersionType;
-        private ISessionHandler _sessionHandler;
 
         private InstaApiBuilder()
         {
@@ -73,12 +71,7 @@ namespace InstagramApiSharp.API.Builder
             if (_apiVersionType == null)
                 _apiVersionType = InstaApiVersionType.Version126;
 
-            var instaApi = new InstaApi(_user, _logger, _device, _httpRequestProcessor, _apiVersionType.Value);
-            if (_sessionHandler != null)
-            {
-                _sessionHandler.InstaApi = instaApi;
-                instaApi.SessionHandler = _sessionHandler;
-            }
+            var instaApi = new InstaApi(_user, _logger, _device, _httpRequestProcessor, _apiVersionType.Value);            
             return instaApi;
         }
 
@@ -188,19 +181,6 @@ namespace InstagramApiSharp.API.Builder
         public IInstaApiBuilder SetApiVersion(InstaApiVersionType apiVersion)
         {
             _apiVersionType = apiVersion;
-            return this;
-        }
-
-        /// <summary>
-        ///     Set session handler
-        /// </summary>
-        /// <param name="sessionHandler">Session handler</param>
-        /// <returns>
-        ///     API Builder
-        /// </returns>
-        public IInstaApiBuilder SetSessionHandler(ISessionHandler sessionHandler)
-        {
-            _sessionHandler = sessionHandler;
             return this;
         }
 
