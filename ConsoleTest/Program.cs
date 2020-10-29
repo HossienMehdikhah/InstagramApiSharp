@@ -1,5 +1,6 @@
 ﻿using InstagramApiSharp.API.Builder;
 using InstagramApiSharp.Classes;
+using InstagramApiSharp.Classes.Models;
 using InstagramApiSharp.Logger;
 using System;
 
@@ -25,7 +26,8 @@ namespace ConsoleTest
                 .Build();
 
             var temp =  InstaApi.LoginAsync().Result;
-            var temp1 = InstaApi.GetCurrentUserAsync().Result;
+            
+            var temp1 = InstaApi.MediaProcessor.DeleteMediaAsync("2414624798661244815", InstaMediaType.Video).Result;
 
 
             Console.WriteLine("Hello World!");

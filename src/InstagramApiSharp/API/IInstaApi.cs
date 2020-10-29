@@ -396,16 +396,7 @@ namespace InstagramApiSharp.API
         ///     Exception --> Something wrong happened
         /// </returns>
         Task<IResult<InstaLoginTwoFactorResult>> TwoFactorLoginAsync(string verificationCode);
-
-        /// <summary>
-        ///     Get Two Factor Authentication details
-        /// </summary>
-        /// <returns>
-        ///     An instance of TwoFactorLoginInfo if success.
-        ///     A null reference if not success; in this case, do LoginAsync first and check if Two Factor Authentication is
-        ///     required, if not, don't run this method
-        /// </returns>
-        Task<IResult<InstaTwoFactorLoginInfo>> GetTwoFactorInfoAsync();
+        
         /// <summary>
         ///     Get user lookup for recovery options
         /// </summary>

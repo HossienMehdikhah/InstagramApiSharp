@@ -4,7 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>InstagramApiSharp</AssemblyName>
     <RootNamespace>InstagramApiSharp</RootNamespace>
-    <Version>1.0.0.1</Version>
+    <Version>1.0.0.3</Version>
     <PackageTags>C#, Instagram, Insta, Client, Sharp, InstagramApiSharp, Client, Api, media, video, album, photo, igtv</PackageTags>
     <PackageIconUrl>http://s9.picofile.com/file/8336165642/insta5.png</PackageIconUrl>    
   </PropertyGroup>
